@@ -48,7 +48,7 @@ def detect_colors(frame):
         cv2.putText(frame, f"{color}: {percentage}%", (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         y_offset += 30
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 while cap.isOpened():
     ret, frame = cap.read()
