@@ -16,7 +16,7 @@ dexarm.move_to(-50, 300, 0)
 dexarm.move_to(-50, 300, -65)
 dexarm.air_picker_place()
 dexarm.air_picker_stop()
-time.sleep(3)
+time.sleep(2)
 
 dexarm.go_home()
 
