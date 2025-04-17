@@ -48,7 +48,11 @@ def detect_colors(frame):
         cv2.putText(frame, f"{color}: {percentage}%", (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         y_offset += 30
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0) # The camera being used. (Either from camera on arm, or laptop camera)
+
+# Set the camera properties (change width/height to adjust FOV) (It will make the window larger)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1000)  # Width of the frame (larger FOV)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  # Height of the frame
 
 while cap.isOpened():
     ret, frame = cap.read()
