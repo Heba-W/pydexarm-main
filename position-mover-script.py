@@ -7,14 +7,14 @@ columns = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 rows = ['8', '7', '6', '5', '4', '3', '2', '1']
 
 coords = {
-    '8': {'a': 80, 'b': 55, 'c': 25, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '7': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '6': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '5': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '4': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '3': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '2': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
-    '1': {'a': 80, 'b': 47, 'c': 26, 'd': -5,  'e': -35, 'f': -60, 'g': -90,  'h': -120},
+    '8': {'a': 80, 'b': 55, 'c': 25, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '7': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '6': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '5': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '4': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '3': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '2': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '1': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
 }
 
 y_offsets = {
@@ -33,10 +33,22 @@ def get_coords(square):
     y = y_offsets[row]
     return x, y
 
-ser = serial.Serial("COM4", 115200, timeout=1)
+# === Initialize Serial ===
+ser = serial.Serial("COM5", 115200, timeout=1)
 time.sleep(2)
-ser.write("G0 X-20 Y290 Z-40 F2000\n".encode())
-time.sleep(4)
+
+# Smooth Motion Settings (if supported)
+ser.write("$$\n".encode())  # View current
+time.sleep(1)
+ser.write("$110=6000\n".encode())  # X max rate
+ser.write("$111=6000\n".encode())  # Y max rate
+ser.write("$120=300\n".encode())   # X accel
+ser.write("$121=300\n".encode())   # Y accel
+time.sleep(1)
+
+# Home to center
+ser.write("G0 X-20 Y290 Z-40 F4000\n".encode())
+time.sleep(2)
 input("Adjust board if needed, then Enter to start...")
 
 def activate_gripper(action):
@@ -45,40 +57,41 @@ def activate_gripper(action):
     elif action == "release":
         ser.write("M1002\n".encode())
 
-def move_piece_physical(start, end, capture=False, color=None):
+def move_piece_physical(start, end=None, capture=False, color=None):
     x_start, y_start = get_coords(start)
-    ser.write(f"G0 X{x_start:.1f} Y{y_start:.1f} Z-20 F2000\n".encode())
-    time.sleep(3)
-    ser.write("G0 Z-50 F1000\n".encode())
-    time.sleep(2)
+    ser.write(f"G0 X{x_start:.1f} Y{y_start:.1f} Z-20 F4000\n".encode())
+    time.sleep(1.5)
+    ser.write("G0 Z-50 F2000\n".encode())
+    time.sleep(1)
     activate_gripper("pick")
-    time.sleep(1)
-    ser.write("G0 Z-20 F1000\n".encode())
-    time.sleep(1)
+    time.sleep(0.5)
+    ser.write("G0 Z-20 F2000\n".encode())
+    time.sleep(0.5)
 
     if capture:
         z_drop = -70 + (captured_counts[color] * 10)
         y_dest = 343 if color == 'r' else 303
-        ser.write(f"G0 X-170 Y{y_dest} Z-20 F2000\n".encode())
-        time.sleep(3)
-        ser.write(f"G0 Z{z_drop} F1000\n".encode())
-        time.sleep(2)
+        ser.write(f"G0 X-190 Y{y_dest} Z-20 F4000\n".encode())
+        time.sleep(1.5)
+        ser.write(f"G0 Z{z_drop} F2000\n".encode())
+        time.sleep(1)
         activate_gripper("release")
-        time.sleep(1)
-        ser.write("G0 Z-20 F1000\n".encode())
-        time.sleep(1)
+        time.sleep(0.5)
+        ser.write("G0 Z-20 F2000\n".encode())
+        time.sleep(0.5)
         captured_counts[color] += 1
-    else:
+    elif end:
         x_end, y_end = get_coords(end)
-        ser.write(f"G0 X{x_end:.1f} Y{y_end:.1f} Z-20 F2000\n".encode())
-        time.sleep(3)
-        ser.write("G0 Z-50 F1000\n".encode())
-        time.sleep(2)
+        ser.write(f"G0 X{x_end:.1f} Y{y_end:.1f} Z-20 F4000\n".encode())
+        time.sleep(1.5)
+        ser.write("G0 Z-50 F2000\n".encode())
+        time.sleep(1)
         activate_gripper("release")
-        time.sleep(1)
-        ser.write("G0 Z-20 F1000\n".encode())
-        time.sleep(1)
+        time.sleep(0.5)
+        ser.write("G0 Z-20 F2000\n".encode())
+        time.sleep(0.5)
 
+# === Board Setup ===
 board = {col+row: ' ' for row in rows for col in columns}
 for row in ['8', '7', '6']:
     for col in columns:
@@ -92,10 +105,7 @@ for row in ['3', '2', '1']:
 def print_board():
     print("\n  h g f e d c b a")
     for row in rows:
-        line = row + " "
-        for col in columns[::-1]:
-            line += board[col+row] + " "
-        print(line)
+        print(row, ' '.join(board[col+row] for col in columns[::-1]))
     print()
 
 def make_move(start, end):
@@ -116,23 +126,19 @@ def is_valid_human_move(start, end):
     if start not in board or end not in board:
         return False
     piece = board[start]
-    if piece not in ['r', 'R']:
-        return False
-    if board[end] != ' ':
+    if piece not in ['r', 'R'] or board[end] != ' ':
         return False
     col_s, row_s = start[0], start[1]
     col_e, row_e = end[0], end[1]
     dx = columns.index(col_e) - columns.index(col_s)
     dy = int(row_e) - int(row_s)
-    if abs(dx) != abs(dy):
-        return False
-    if abs(dx) not in [1, 2]:
+    if abs(dx) != abs(dy) or abs(dx) not in [1, 2]:
         return False
     if piece == 'r' and dy < 0:
         return False
     if abs(dx) == 2:
         mid_col = columns[columns.index(col_s) + dx // 2]
-        mid_row = str(int(row_s) + dy // 2)
+        mid_row = str((int(row_s) + int(row_e)) // 2)
         mid_square = mid_col + mid_row
         if board[mid_square] not in ['b', 'B']:
             return False
@@ -144,8 +150,7 @@ def get_robot_moves():
         if piece not in ['b', 'B']:
             continue
         col, row = square[0], square[1]
-        col_idx = columns.index(col)
-        row_idx = rows.index(row)
+        col_idx, row_idx = columns.index(col), rows.index(row)
         directions = [(-1, 1), (1, 1)] if piece == 'b' else [(-1, 1), (1, 1), (-1, -1), (1, -1)]
         for dx, dy in directions:
             c_idx, r_idx = col_idx + dx, row_idx + dy
@@ -157,12 +162,12 @@ def get_robot_moves():
             c_idx, r_idx = col_idx + 2*dx, row_idx + 2*dy
             mid_c, mid_r = col_idx + dx, row_idx + dy
             if 0 <= c_idx < 8 and 0 <= r_idx < 8:
-                target = columns[c_idx] + rows[r_idx]
-                middle = columns[mid_c] + rows[mid_r]
+                target, middle = columns[c_idx]+rows[r_idx], columns[mid_c]+rows[mid_r]
                 if board[target] == ' ' and board[middle] in ['r', 'R']:
                     moves.insert(0, (square, target, middle))
     return moves
 
+# === Game Loop ===
 while True:
     print_board()
     start = input("Your move - start square (e.g., e2) or 'q' to quit: ").lower()
