@@ -38,18 +38,35 @@ ser = serial.Serial("COM5", 115200, timeout=1)
 time.sleep(2)
 
 # Smooth Motion Settings (if supported)
-ser.write("$$\n".encode())  # View current
+ser.write("$$\n".encode())
 time.sleep(1)
-ser.write("$110=6000\n".encode())  # X max rate
-ser.write("$111=6000\n".encode())  # Y max rate
-ser.write("$120=300\n".encode())   # X accel
-ser.write("$121=300\n".encode())   # Y accel
+ser.write("$110=6000\n".encode())
+ser.write("$111=6000\n".encode())
+ser.write("$120=300\n".encode())
+ser.write("$121=300\n".encode())
 time.sleep(1)
 
 # Home to center
 ser.write("G0 X-20 Y290 Z-40 F4000\n".encode())
 time.sleep(2)
 input("Adjust board if needed, then Enter to start...")
+
+# === Board Setup ===
+board = {col+row: ' ' for row in rows for col in columns}
+for row in ['8', '7', '6']:
+    for col in columns:
+        if (columns.index(col) + rows.index(row)) % 2 != 0:
+            board[col+row] = 'b'
+for row in ['3', '2', '1']:
+    for col in columns:
+        if (columns.index(col) + rows.index(row)) % 2 != 0:
+            board[col+row] = 'r'
+
+def print_board():
+    print("\n  h g f e d c b a")
+    for row in rows:
+        print(row, ' '.join(board[col+row] for col in columns[::-1]))
+    print()
 
 def activate_gripper(action):
     if action == "pick":
@@ -90,23 +107,6 @@ def move_piece_physical(start, end=None, capture=False, color=None):
         time.sleep(0.5)
         ser.write("G0 Z-20 F2000\n".encode())
         time.sleep(0.5)
-
-# === Board Setup ===
-board = {col+row: ' ' for row in rows for col in columns}
-for row in ['8', '7', '6']:
-    for col in columns:
-        if (columns.index(col) + rows.index(row)) % 2 != 0:
-            board[col+row] = 'b'
-for row in ['3', '2', '1']:
-    for col in columns:
-        if (columns.index(col) + rows.index(row)) % 2 != 0:
-            board[col+row] = 'r'
-
-def print_board():
-    print("\n  h g f e d c b a")
-    for row in rows:
-        print(row, ' '.join(board[col+row] for col in columns[::-1]))
-    print()
 
 def make_move(start, end):
     board[end] = board[start]
@@ -166,6 +166,16 @@ def get_robot_moves():
                 if board[target] == ' ' and board[middle] in ['r', 'R']:
                     moves.insert(0, (square, target, middle))
     return moves
+
+# === Pre-game alignment check ===
+check_alignment = input("Have you adjusted the pieces and ensured the robot can pick them up? (y/n): ").lower()
+if check_alignment != 'y':
+    for square, piece in board.items():
+        if piece in ['r', 'R', 'b', 'B']:
+            x, y = get_coords(square)
+            ser.write(f"G0 X{x:.1f} Y{y:.1f} Z-20 F4000\n".encode())
+            time.sleep(1)
+            input(f"Is the piece at {square} centered and pickup ready? Press Enter to continue...")
 
 # === Game Loop ===
 while True:
