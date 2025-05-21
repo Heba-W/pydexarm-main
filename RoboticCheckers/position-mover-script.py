@@ -7,14 +7,14 @@ columns = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 rows = ['8', '7', '6', '5', '4', '3', '2', '1']
 
 coords = {
-    '8': {'a': 80, 'b': 55, 'c': 25, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '8': {'a': 80, 'b': 55, 'c': 30, 'd': 0, 'e': -30, 'f': -55, 'g': -90, 'h': -120},
     '7': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
     '6': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
     '5': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
     '4': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
     '3': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
     '2': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
-    '1': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -120},
+    '1': {'a': 80, 'b': 47, 'c': 26, 'd': -5, 'e': -35, 'f': -60, 'g': -90, 'h': -110},  # h1 adjusted
 }
 
 y_offsets = {
@@ -52,15 +52,21 @@ time.sleep(2)
 input("Adjust board if needed, then Enter to start...")
 
 # === Board Setup ===
-board = {col+row: ' ' for row in rows for col in columns}
-for row in ['8', '7', '6']:
-    for col in columns:
-        if (columns.index(col) + rows.index(row)) % 2 != 0:
-            board[col+row] = 'b'
-for row in ['3', '2', '1']:
-    for col in columns:
-        if (columns.index(col) + rows.index(row)) % 2 != 0:
-            board[col+row] = 'r'
+def reset_board():
+    global board, captured_counts
+    board = {col+row: ' ' for row in rows for col in columns}
+    for row in ['8', '7', '6']:
+        for col in columns:
+            if (columns.index(col) + rows.index(row)) % 2 != 0:
+                board[col+row] = 'b'
+    for row in ['3', '2', '1']:
+        for col in columns:
+            if (columns.index(col) + rows.index(row)) % 2 != 0:
+                board[col+row] = 'r'
+    captured_counts = {'r': 0, 'b': 0}
+    print("Game has been reset to starting positions.")
+
+reset_board()
 
 def print_board():
     print("\n  h g f e d c b a")
@@ -86,15 +92,17 @@ def move_piece_physical(start, end=None, capture=False, color=None):
     time.sleep(0.5)
 
     if capture:
-        z_drop = -70 + (captured_counts[color] * 10)
+        ser.write("G0 Z60 F2000\n".encode())
+        time.sleep(0.5)
+        z_drop = -65 + (captured_counts[color] * 10)
         y_dest = 343 if color == 'r' else 303
-        ser.write(f"G0 X-190 Y{y_dest} Z-20 F4000\n".encode())
+        ser.write(f"G0 X-190 Y{y_dest} Z60 F4000\n".encode())
         time.sleep(1.5)
         ser.write(f"G0 Z{z_drop} F2000\n".encode())
         time.sleep(1)
         activate_gripper("release")
         time.sleep(0.5)
-        ser.write("G0 Z-20 F2000\n".encode())
+        ser.write("G0 Z60 F2000\n".encode())
         time.sleep(0.5)
         captured_counts[color] += 1
     elif end:
@@ -180,9 +188,13 @@ if check_alignment != 'y':
 # === Game Loop ===
 while True:
     print_board()
-    start = input("Your move - start square (e.g., e2) or 'q' to quit: ").lower()
+    start = input("Your move - start square (e.g., e2), 'r' to reset, or 'q' to quit: ").lower()
     if start == 'q':
         break
+    if start == 'r':
+        reset_board()
+        continue
+
     end = input("Your move - end square (e.g., e4): ").lower()
     if end == 'q':
         break
